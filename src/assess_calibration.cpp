@@ -173,7 +173,6 @@ class AssessCalibration {
             tf_msg.transform.translation.z = transform.inverse().getOrigin().z();
             
             double r_val,y_val,p_val;
-            double d1,d2,d3;
             geometry_msgs::Quaternion q = tf_msg.transform.rotation;
             tf::Quaternion tfq;
             tf::quaternionMsgToTF(q, tfq);
@@ -190,10 +189,10 @@ class AssessCalibration {
 
         void results_and_visualise () 
         {    
-            std::printf("\n---- Calculating average reprojection error on %d samples ---- \n", sample_list.size());
+            std::printf("\n---- Calculating average reprojection error on %ld samples ---- \n", sample_list.size());
             // Calculate mean and stdev of pixel error across all test samples
             std::vector<float> pix_err, pix_errmm;
-            for (int i = 0; i < sample_list.size(); i++)
+            for (size_t i = 0; i < sample_list.size(); i++)
             {
                 std::vector<cv::Point2d> cam, lidar;
                 float pe = compute_reprojection(sample_list[i], cam, lidar);
@@ -206,13 +205,13 @@ class AssessCalibration {
                 double h0_diff = abs(sample_list[i].heights[0] - board_dimensions.height);
                 double h1_diff = abs(sample_list[i].heights[1] - board_dimensions.height);
                 double be_dim_err = w0_diff + w1_diff + h0_diff + h1_diff;
-                std::printf(" %3d/%3d | dist=%6.3fm, dimerr=%8.3fmm | error: %7.3fpix  --> %7.3fmm\n", i+1, sample_list.size(), sample_list[i].distance_from_origin, be_dim_err, pe, pe*sample_list[i].pixeltometre*1000);
+                std::printf(" %3ld/%3ld | dist=%6.3fm, dimerr=%8.3fmm | error: %7.3fpix  --> %7.3fmm\n", i+1, sample_list.size(), sample_list[i].distance_from_origin, be_dim_err, pe, pe*sample_list[i].pixeltometre*1000);
             }   
             float mean_pe, stdev_pe, mean_pemm, stdev_pemm;
             get_mean_stdev(pix_err, mean_pe, stdev_pe);
             get_mean_stdev(pix_errmm, mean_pemm, stdev_pemm);
             printf("\nCalibration params (roll,pitch,yaw,x,y,z): %6.4f,%6.4f,%6.4f,%6.4f,%6.4f,%6.4f\n", param_msg->data[0],param_msg->data[1],param_msg->data[2],param_msg->data[3],param_msg->data[4],param_msg->data[5]);
-            printf("\nMean reprojection error across  %d samples\n", sample_list.size());
+            printf("\nMean reprojection error across  %ld samples\n", sample_list.size());
             std::printf("- Error (pix) = %6.3f pix, stdev = %6.3f\n", mean_pe, stdev_pe);
             std::printf("- Error (mm)  = %6.3f mm , stdev = %6.3f\n\n\n", mean_pemm, stdev_pemm);
             
@@ -325,7 +324,7 @@ class AssessCalibration {
             
             // Shove the double vector elements into the OptimiseSample struct
             int sample_numrows = 19; // non-zero indexed, but the i value is.
-            for (int i = 0; i < row.size(); i+=sample_numrows) {
+            for (size_t i = 0; i < row.size(); i+=sample_numrows) {
                 OptimisationSample temp;
                 temp.camera_centre = row[i];
                 temp.camera_normal = row[i+1];

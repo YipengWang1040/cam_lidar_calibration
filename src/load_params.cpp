@@ -4,7 +4,7 @@ namespace cam_lidar_calibration
 {
     void loadParams(const ros::NodeHandle& n, initial_parameters_t& i_params)
     {
-        int cb_w, cb_h, w, h, e_x, e_y, i_width, i_height;
+        int cb_w, cb_h, w, h, e_x, e_y;
         n.getParam("camera_topic", i_params.camera_topic);
         n.getParam("camera_info", i_params.camera_info);
         n.getParam("lidar_topic", i_params.lidar_topic);

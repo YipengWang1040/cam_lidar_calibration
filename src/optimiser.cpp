@@ -1,3 +1,5 @@
+#include <opencv2/calib3d.hpp>
+#include <opencv2/core.hpp>
 #define _USE_MATH_DEFINES
 
 #include "cam_lidar_calibration/optimiser.h"
@@ -60,7 +62,7 @@ namespace cam_lidar_calibration
         // Eq (4) in the original baseline paper
         // We do all the alignment of features in the lidar frame
 
-        double cost;
+        double cost=0;
         for (const auto& sample : current_set_)
         {
             auto camera_normal_lidar_frame = rot * sample.camera_normal;
@@ -311,7 +313,7 @@ namespace cam_lidar_calibration
             sets.push_back(set);
             return;
         }
-        for (int i = offset; i <= samples.size() - k; ++i) {
+        for (size_t i = offset; i <= samples.size() - k; ++i) {
             set.push_back(samples[i]);
             generate_sets(i+1, k-1, set, samples);
             set.pop_back();
@@ -374,7 +376,6 @@ namespace cam_lidar_calibration
 
         const Rotation initial_rotation{ euler[0], euler[1], euler[2] };
         double rotation_increment = M_PI / 8;
-        namespace ph = std::placeholders;
 
         // Optimization for rotation alone
         GA_Rot_t ga_obj;
@@ -424,7 +425,7 @@ namespace cam_lidar_calibration
         cv::Mat cp_trans = tmp_rot * camera_centres_.t();
         cv::Mat trans_diff = lidar_centres_.t() - cp_trans;
         cv::Mat summed_diff;
-        cv::reduce(trans_diff, summed_diff, 1, CV_REDUCE_SUM, CV_64F);
+        cv::reduce(trans_diff, summed_diff, 1, cv::REDUCE_SUM, CV_64F);
         summed_diff = summed_diff / trans_diff.cols;
         const RotationTranslation initial_rotation_translation{ best_rotation_, summed_diff.at<double>(0),
                                                                 summed_diff.at<double>(1), summed_diff.at<double>(2) };
@@ -443,14 +444,14 @@ namespace cam_lidar_calibration
         ga_rot_trans.calculate_SO_total_fitness = [&](const GA_Rot_Trans_t::thisChromosomeType& X) -> double {
             return this->calculate_SO_total_fitness(X);
         };
-        ga_rot_trans.init_genes = [&, initial_rotation_translation, rotation_increment, translation_increment](
+        ga_rot_trans.init_genes = [&, initial_rotation_translation, rotation_increment](
                 RotationTranslation& p, const std::function<double(void)>& rnd01) -> void {
             this->init_genes(p, rnd01, initial_rotation_translation, rotation_increment, translation_increment);
         };
         ga_rot_trans.eval_solution = [&](const RotationTranslation& rt, RotationTranslationCost& c) -> bool {
             return this->eval_solution(rt, c);
         };
-        ga_rot_trans.mutate = [&, initial_rotation_translation, rotation_increment, translation_increment](
+        ga_rot_trans.mutate = [&, initial_rotation_translation, rotation_increment](
                 const RotationTranslation& X_base, const std::function<double(void)>& rnd01,
                 double shrink_scale) -> RotationTranslation {
             return this->mutate(X_base, rnd01, initial_rotation_translation, rotation_increment, translation_increment,

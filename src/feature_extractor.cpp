@@ -10,6 +10,7 @@
 #include <pcl/common/intersections.h>
 
 #include <pcl/filters/extract_indices.h>
+#include <opencv2/imgcodecs.hpp>
 #include <pcl/filters/impl/extract_indices.hpp>
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/impl/passthrough.hpp>
@@ -205,7 +206,7 @@ namespace cam_lidar_calibration
 
             // Shove the double vector elements into the OptimiseSample struct
             int sample_numrows = 19; // non-zero indexed, but the i value is.
-            for (int i = 0; i < row.size(); i+=sample_numrows) {
+            for (size_t i = 0; i < row.size(); i+=sample_numrows) {
                 OptimisationSample temp;
                 temp.camera_centre = row[i];
                 temp.camera_normal = row[i+1];
@@ -311,7 +312,7 @@ namespace cam_lidar_calibration
         int num_assessed = 0;
         std::vector<SetAssess> calib_list;
 
-        for (int i = 0; i < optimiser_->sets.size(); i++)
+        for (size_t i = 0; i < optimiser_->sets.size(); i++)
         {
             // Insert vector elements into matrix to compute analytical euler angles by matrix operations
             int row = 0;
@@ -389,14 +390,14 @@ namespace cam_lidar_calibration
 
         ROS_INFO("====== START CALIBRATION ======\n");
 
-        printf(" Computing calibration results (roll,pitch,yaw,x,y,z) for each of the %d lowest voq sets\n", optimiser_->top_sets.size());
-        for (int i = 0; i < optimiser_->top_sets.size(); i++)
+        printf(" Computing calibration results (roll,pitch,yaw,x,y,z) for each of the %ld lowest voq sets\n", optimiser_->top_sets.size());
+        for (size_t i = 0; i < optimiser_->top_sets.size(); i++)
         {
             output_csv.open(outpath, std::ios_base::ate | std::ios_base::app);
 
             timer_set.tic();
             timer_set.tic();
-            printf(" %2d/%2d ", i+1, optimiser_->top_sets.size());
+            printf(" %2ld/%2ld ", i+1, optimiser_->top_sets.size());
             success = optimiser_->optimise(opt_result, optimiser_->top_sets[i], i_params.cameramat, i_params.distcoeff);
 
             // Save extrinsic params to csv for post processing
@@ -544,8 +545,8 @@ namespace cam_lidar_calibration
         // Find the chessboard in 3D space - in it's own object frame (position is arbitrary, so we place it flat)
 
         // Location of board frame origin from the bottom left inner corner of the chessboard
-        cv::Point3d chessboard_bleft_corner((i_params.chessboard_pattern_size.width - 1) * i_params.square_length / 2,
-                                      (i_params.chessboard_pattern_size.height - 1)*i_params.square_length/2, 0);
+        cv::Point3d chessboard_bleft_corner((i_params.chessboard_pattern_size.width - 1) * i_params.square_length / 2.,
+                                      (i_params.chessboard_pattern_size.height - 1)*i_params.square_length/2., 0);
 
         std::vector<cv::Point3d> corners_3d;
         for (int y = 0; y < i_params.chessboard_pattern_size.height; y++)
@@ -600,7 +601,7 @@ namespace cam_lidar_calibration
             ROS_FATAL("No msgs from /camera_info - check camera_info topic in cfg/params.yaml is correct and is being published");
         }
 
-        for (int i = 0; i < board_image_pixels.size(); i++){
+        for (size_t i = 0; i < board_image_pixels.size(); i++){
             if (i == 0){
                 cv::circle(cv_ptr->image, board_image_pixels[i], 4, CV_RGB(255, 0, 0), -1);
             } else if (i == 1) {
@@ -917,8 +918,8 @@ namespace cam_lidar_calibration
             auto [top_left, bottom_left] = findEdges(max_points);
             auto [top_right, bottom_right] = findEdges(min_points);
 
-            if (top_left.values.empty() | top_right.values.empty()
-            | bottom_left.values.empty() | bottom_right.values.empty()) {
+            if (top_left.values.empty() || top_right.values.empty()
+            || bottom_left.values.empty() || bottom_right.values.empty()) {
                 ROS_ERROR("RANSAC unsuccessful, discarding sample - Need more lidar points on board");
                 pc_samples_.pop_back();
                 num_samples--;
@@ -1016,9 +1017,9 @@ namespace cam_lidar_calibration
             printf("Board dim error  = %7.2f\n\n", be_dim_err);
 
             // If the lidar board dim is more than 10% of the measured, then reject sample
-            if (abs(w0-i_params.board_dimensions.width) > i_params.board_dimensions.width*0.1 |
-                abs(w1 - i_params.board_dimensions.width) > i_params.board_dimensions.width * 0.1 |
-                abs(h0 - i_params.board_dimensions.height) > i_params.board_dimensions.height * 0.1 |
+            if (abs(w0-i_params.board_dimensions.width) > i_params.board_dimensions.width*0.1 ||
+                abs(w1 - i_params.board_dimensions.width) > i_params.board_dimensions.width * 0.1 ||
+                abs(h0 - i_params.board_dimensions.height) > i_params.board_dimensions.height * 0.1 ||
                 abs(h1 - i_params.board_dimensions.height) > i_params.board_dimensions.height * 0.1) {
                 ROS_ERROR("Plane fitting error, LiDAR board dimensions incorrect; discarding sample - try capturing again");
                 pc_samples_.pop_back();
@@ -1123,6 +1124,8 @@ namespace cam_lidar_calibration
 
         else if (x >= 0 && y < 0 && z < 0)
             return 8;
+        else // should not happen
+            return -1;
     }
 
 }  // namespace cam_lidar_calibration
